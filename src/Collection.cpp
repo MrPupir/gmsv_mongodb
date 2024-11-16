@@ -188,11 +188,14 @@ LUA_FUNCTION(collection_aggregate) {
 
     CHECK_BSON(pipeline, opts)
 
+    SETUP_QUERY(error)
+
     auto cursor = mongoc_collection_aggregate(collection, MONGOC_QUERY_NONE, pipeline, opts, nullptr);
 
     CLEANUP_BSON(pipeline, opts)
 
     if (!cursor) {
+        CLEANUP_QUERY(error, true)
         LUA->PushNil();
         LUA->PushString("Failed to create aggregate cursor");
         return 2;
@@ -212,6 +215,7 @@ LUA_FUNCTION(collection_aggregate) {
 
     if (mongoc_cursor_error(cursor, &error)) {
         mongoc_cursor_destroy(cursor);
+        CLEANUP_QUERY(error, true)
         LUA->PushNil();
         LUA->PushString(error.message);
         return 2;
@@ -219,6 +223,8 @@ LUA_FUNCTION(collection_aggregate) {
 
     mongoc_cursor_destroy(cursor);
     LUA->ReferencePush(table);
+
+    CLEANUP_QUERY(error, false)
 
     return 1;
 }
