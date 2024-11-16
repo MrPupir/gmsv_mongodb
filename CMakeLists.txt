@@ -10,6 +10,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/bin/release)
 set(CMAKE_RUNTIME_LIBRARY_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/bin/debug)
 set(CMAKE_RUNTIME_LIBRARY_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/bin/release)
 
+find_package(mongoc-1.0 CONFIG REQUIRED)
+
+add_compile_definitions(MONGOC_STATIC BSON_STATIC)
 
 add_subdirectory(include)
 add_subdirectory(src)
