@@ -92,7 +92,7 @@ LUA_FUNCTION(collection_find_one) {
     bson_init(&options);
     if (opts) bson_copy_to_excluding_noinit(opts, &options, "limit", "singleBatch", (char *)nullptr);
 
-    BSON_APPEND_INT32(&options, "limit", 1 );
+    BSON_APPEND_INT32(&options, "limit", 1);
     BSON_APPEND_BOOL(&options, "singleBatch", true);
 
     auto cursor = mongoc_collection_find_with_opts(collection, filter, &options, mongoc_read_prefs_new(MONGOC_READ_PRIMARY));
@@ -102,12 +102,14 @@ LUA_FUNCTION(collection_find_one) {
     LUA->CreateTable();
 
     const bson_t* bson;
-    mongoc_cursor_next(cursor, &bson);
-    mongoc_cursor_destroy(cursor);
-
-    LUA->ReferencePush(BSONToLua(LUA, bson));
-
-    return 1;
+    if (mongoc_cursor_next(cursor, &bson)) {
+        LUA->ReferencePush(BSONToLua(LUA, bson));
+        mongoc_cursor_destroy(cursor);
+        return 1;
+    } else {
+        mongoc_cursor_destroy(cursor);
+        return -1;
+    }
 }
 
 LUA_FUNCTION(collection_insert) {
@@ -177,6 +179,46 @@ LUA_FUNCTION(collection_bulk) {
     CLEANUP_BSON(opts)
 
     LUA->PushUserType(bulk, BulkMetaTableId);
+
+    return 1;
+}
+
+LUA_FUNCTION(collection_aggregate) {
+    CHECK_COLLECTION()
+
+    CHECK_BSON(pipeline, opts)
+
+    auto cursor = mongoc_collection_aggregate(collection, MONGOC_QUERY_NONE, pipeline, opts, nullptr);
+
+    CLEANUP_BSON(pipeline, opts)
+
+    if (!cursor) {
+        LUA->PushNil();
+        LUA->PushString("Failed to create aggregate cursor");
+        return 2;
+    }
+
+    LUA->CreateTable();
+    int table = LUA->ReferenceCreate();
+
+    const bson_t* bson;
+    int index = 1;
+    while (mongoc_cursor_next(cursor, &bson)) {
+        LUA->ReferencePush(table);
+        LUA->PushNumber(index++);
+        LUA->ReferencePush(BSONToLua(LUA, bson));
+        LUA->SetTable(-3);
+    }
+
+    if (mongoc_cursor_error(cursor, &error)) {
+        mongoc_cursor_destroy(cursor);
+        LUA->PushNil();
+        LUA->PushString(error.message);
+        return 2;
+    }
+
+    mongoc_cursor_destroy(cursor);
+    LUA->ReferencePush(table);
 
     return 1;
 }

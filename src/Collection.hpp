@@ -23,6 +23,8 @@ int collection_update(lua_State* state);
 
 int collection_bulk(lua_State* state);
 
+int collection_aggregate(lua_State* state);
+
 extern int CollectionMetaTableId;
 
 #endif //GMSV_MONGODB_COLLECTION_HPP

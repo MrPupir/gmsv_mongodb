@@ -105,6 +105,9 @@ GMOD_MODULE_OPEN() {
         LUA->PushCFunction(collection_bulk);
         LUA->SetField(-2, "Bulk");
 
+        LUA->PushCFunction(collection_aggregate);
+        LUA->SetField(-2, "Aggregate");
+
     LUA->Pop();
 
     BulkMetaTableId = LUA->CreateMetaTable("MongoDBBulk");
