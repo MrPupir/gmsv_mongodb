@@ -1,15 +1,16 @@
 #include "Collection.hpp"
 #include <functional>
+#include <thread>
 
 #define CHECK_COLLECTION() \
         auto collection = LUA->GetUserType<mongoc_collection_t>(1, CollectionMetaTableId); \
-        if (collection == nullptr) return 0; \
+        if (collection == nullptr) return 0;
 
 void run_async(lua_State* state, std::function<void()> task) {
     std::thread([state, task]() {
         task();
     }).detach();
-}        
+}
 
 LUA_FUNCTION(destroy_collection) {
     CHECK_COLLECTION()
@@ -159,7 +160,7 @@ LUA_FUNCTION(collection_find) {
 
     int table = LUA->ReferenceCreate();
 
-    const bson_t * bson;
+    const bson_t* bson;
     for (int i = 0; mongoc_cursor_next(cursor, &bson); ++i) {
         LUA->ReferencePush(table);
         LUA->PushNumber(i + 1);
@@ -183,7 +184,7 @@ LUA_FUNCTION(collection_find_async) {
     run_async(LUA, [=]() {
         auto cursor = mongoc_collection_find_with_opts(collection, filter, opts, mongoc_read_prefs_new(MONGOC_READ_PRIMARY));
         CLEANUP_BSON(filter, opts)
-        
+
         LUA->PushReference(callback_ref);
         LUA->CreateTable();
         int table = LUA->ReferenceCreate();
@@ -211,7 +212,7 @@ LUA_FUNCTION(collection_find_one) {
 
     bson_t options;
     bson_init(&options);
-    if (opts) bson_copy_to_excluding_noinit(opts, &options, "limit", "singleBatch", (char *)nullptr);
+    if (opts) bson_copy_to_excluding_noinit(opts, &options, "limit", "singleBatch", (char*)nullptr);
 
     BSON_APPEND_INT32(&options, "limit", 1);
     BSON_APPEND_BOOL(&options, "singleBatch", true);
@@ -243,7 +244,7 @@ LUA_FUNCTION(collection_find_one_async) {
     run_async(LUA, [=]() {
         bson_t options;
         bson_init(&options);
-        if (opts) bson_copy_to_excluding_noinit(opts, &options, "limit", "singleBatch", (char *)nullptr);
+        if (opts) bson_copy_to_excluding_noinit(opts, &options, "limit", "singleBatch", (char*)nullptr);
 
         BSON_APPEND_INT32(&options, "limit", 1);
         BSON_APPEND_BOOL(&options, "singleBatch", true);
@@ -449,29 +450,19 @@ LUA_FUNCTION(collection_aggregate) {
     }
 
     LUA->CreateTable();
+
     int table = LUA->ReferenceCreate();
 
     const bson_t* bson;
-    int index = 1;
-    while (mongoc_cursor_next(cursor, &bson)) {
+    for (int i = 0; mongoc_cursor_next(cursor, &bson); ++i) {
         LUA->ReferencePush(table);
-        LUA->PushNumber(index++);
+        LUA->PushNumber(i + 1);
         LUA->ReferencePush(BSONToLua(LUA, bson));
         LUA->SetTable(-3);
     }
 
-    if (mongoc_cursor_error(cursor, &error)) {
-        mongoc_cursor_destroy(cursor);
-        CLEANUP_QUERY(error, true)
-        LUA->PushNil();
-        LUA->PushString(error.message);
-        return 2;
-    }
-
     mongoc_cursor_destroy(cursor);
     LUA->ReferencePush(table);
-
-    CLEANUP_QUERY(error, false)
 
     return 1;
 }
@@ -484,40 +475,32 @@ LUA_FUNCTION(collection_aggregate_async) {
     CHECK_BSON(pipeline, opts)
 
     run_async(LUA, [=]() {
-        bson_error_t error;
         auto cursor = mongoc_collection_aggregate(collection, MONGOC_QUERY_NONE, pipeline, opts, nullptr);
         CLEANUP_BSON(pipeline, opts)
 
-        LUA->PushReference(callback_ref);
         if (!cursor) {
+            LUA->PushReference(callback_ref);
             LUA->PushNil();
             LUA->PushString("Failed to create aggregate cursor");
             LUA->PCall(2, 0);
-            LUA->ReferenceFree(callback_ref);
-            return;
-        }
-
-        LUA->CreateTable();
-        int table = LUA->ReferenceCreate();
-        const bson_t* bson;
-        int index = 1;
-        while (mongoc_cursor_next(cursor, &bson)) {
-            LUA->ReferencePush(table);
-            LUA->PushNumber(index++);
-            LUA->ReferencePush(BSONToLua(LUA, bson));
-            LUA->SetTable(-3);
-        }
-
-        if (mongoc_cursor_error(cursor, &error)) {
-            mongoc_cursor_destroy(cursor);
-            LUA->PushNil();
-            LUA->PushString(error.message);
-            LUA->PCall(2, 0);
         } else {
+            LUA->PushReference(callback_ref);
+            LUA->CreateTable();
+            int table = LUA->ReferenceCreate();
+
+            const bson_t* bson;
+            for (int i = 0; mongoc_cursor_next(cursor, &bson); ++i) {
+                LUA->ReferencePush(table);
+                LUA->PushNumber(i + 1);
+                LUA->ReferencePush(BSONToLua(LUA, bson));
+                LUA->SetTable(-3);
+            }
+
             mongoc_cursor_destroy(cursor);
             LUA->ReferencePush(table);
             LUA->PCall(1, 0);
         }
+
         LUA->ReferenceFree(callback_ref);
     });
     return 0;
