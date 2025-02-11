@@ -1,4 +1,5 @@
 #include "Collection.hpp"
+#include <functional>
 
 #define CHECK_COLLECTION() \
         auto collection = LUA->GetUserType<mongoc_collection_t>(1, CollectionMetaTableId); \
