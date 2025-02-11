@@ -78,35 +78,68 @@ GMOD_MODULE_OPEN() {
         LUA->PushCFunction(destroy_collection);
         LUA->SetField(-2, "__gc");
 
+        LUA->PushCFunction(destroy_collection_async);
+        LUA->SetField(-2, "__gc_async");
+
         LUA->PushCFunction(collection_command);
         LUA->SetField(-2, "Command");
+
+        LUA->PushCFunction(collection_command_async);
+        LUA->SetField(-2, "CommandAsync");
 
         LUA->PushCFunction(collection_name);
         LUA->SetField(-2, "Name");
 
+        LUA->PushCFunction(collection_name_async);
+        LUA->SetField(-2, "NameAsync");
+
         LUA->PushCFunction(collection_count);
         LUA->SetField(-2, "Count");
+
+        LUA->PushCFunction(collection_count_async);
+        LUA->SetField(-2, "CountAsync");
 
         LUA->PushCFunction(collection_find);
         LUA->SetField(-2, "Find");
 
+        LUA->PushCFunction(collection_find_async);
+        LUA->SetField(-2, "FindAsync");
+
         LUA->PushCFunction(collection_find_one);
         LUA->SetField(-2, "FindOne");
+
+        LUA->PushCFunction(collection_find_one_async);
+        LUA->SetField(-2, "FindOneAsync");
 
         LUA->PushCFunction(collection_insert);
         LUA->SetField(-2, "Insert");
 
+        LUA->PushCFunction(collection_insert_async);
+        LUA->SetField(-2, "InsertAsync");
+
         LUA->PushCFunction(collection_update);
         LUA->SetField(-2, "Update");
+
+        LUA->PushCFunction(collection_update_async);
+        LUA->SetField(-2, "UpdateAsync");
 
         LUA->PushCFunction(collection_remove);
         LUA->SetField(-2, "Remove");
 
+        LUA->PushCFunction(collection_remove_async);
+        LUA->SetField(-2, "RemoveAsync");
+
         LUA->PushCFunction(collection_bulk);
         LUA->SetField(-2, "Bulk");
 
+        LUA->PushCFunction(collection_bulk_async);
+        LUA->SetField(-2, "BulkAsync");
+
         LUA->PushCFunction(collection_aggregate);
         LUA->SetField(-2, "Aggregate");
+
+        LUA->PushCFunction(collection_aggregate_async);
+        LUA->SetField(-2, "AggregateAsync");
 
     LUA->Pop();
 
